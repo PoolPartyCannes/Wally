@@ -7,6 +7,7 @@ use axum::{
 use tokio::net::TcpListener;
 use tower_http::cors::{Any, CorsLayer};
 use std::sync::Arc;
+use serde::Deserialize;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -31,6 +32,7 @@ pub async fn create_router() -> Router {
         .allow_origin(Any);
     let app = Router::new()
         .route("/", get(hello_world))
+        .route("/migrationdata", post(handle_migration))
         .layer(cors);
     return app;
 }
@@ -46,4 +48,17 @@ async fn hello_world() -> impl IntoResponse {
     });
 
     Json(json_response)
+}
+
+#[derive(Debug, Deserialize)]
+pub struct MigrationData {
+    pub data: String,
+}
+
+#[axum::debug_handler]
+pub async fn handle_migration(
+    Json(payload): Json<MigrationData>,
+) -> impl IntoResponse {
+    println!("yabadaba: {}", payload.data);
+
 }
