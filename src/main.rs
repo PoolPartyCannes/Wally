@@ -8,7 +8,7 @@ use tokio::net::TcpListener;
 use tower_http::cors::{Any, CorsLayer};
 use std::sync::Arc;
 use serde::Deserialize;
-
+use reqwest::Error;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let listener = create_listener("0.0.0.0:8080").await;
@@ -51,14 +51,32 @@ async fn hello_world() -> impl IntoResponse {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct MigrationData {
+pub struct MigrationPayload {
     pub data: String,
 }
 
 #[axum::debug_handler]
 pub async fn handle_migration(
-    Json(payload): Json<MigrationData>,
+    Json(payload): Json<MigrationPayload>,
 ) -> impl IntoResponse {
     println!("yabadaba: {}", payload.data);
+    let res = upload_to_walrus(payload.data).await;
+    println!("res: {:#?}", res);
+}
 
+async fn upload_to_walrus(payload: String) -> Result<(), Error> {
+    let url = "https://publisher.walrus-testnet.walrus.space/v1/blobs?epochs=5";
+
+    let client = reqwest::Client::new();
+    let res = client
+        .put(url)
+        .body(payload)
+        .send()
+        .await?;
+
+    println!("Status: {}", res.status());
+    let text = res.text().await?;
+    println!("Body: {}", text);
+
+    Ok(())
 }
